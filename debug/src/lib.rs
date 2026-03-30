@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput};
+use syn::{parse_macro_input, Attribute, DeriveInput};
 
 #[proc_macro_derive(CustomDebug, attributes(debug))]
 pub fn derive(input: TokenStream) -> TokenStream {
@@ -18,9 +18,19 @@ pub fn derive(input: TokenStream) -> TokenStream {
         let Some(field_name) = &field.ident else {
             panic!("expected each field to be a named field");
         };
+
         let field_name_str = field_name.to_string();
-        quote! {
-            .field(#field_name_str, &self.#field_name)
+        if let Some(attr_val_result) = extract_attribute_value(&field.attrs) {
+            let attribute_debug_style = match attr_val_result {
+                Ok(attr_val) => attr_val,
+                Err(e) => panic!("{e}"),
+            };
+
+            todo!()
+        } else {
+            quote! {
+                .field(#field_name_str, &self.#field_name)
+            }
         }
     });
 
@@ -34,4 +44,19 @@ pub fn derive(input: TokenStream) -> TokenStream {
         }
     }
     .into()
+}
+
+fn extract_attribute_value(attrs: &[Attribute]) -> Option<Result<String, String>> {
+    let attr = attrs.iter().find(|a| a.path().is_ident("debug"))?;
+    let meta: syn::MetaNameValue = match attr.parse_args() {
+        Ok(m) => m,
+        Err(_) => return Some(Err("couldn't parse to name value".to_string())),
+    };
+    match meta.value {
+        syn::Expr::Lit(expr_lit) => match expr_lit.lit {
+            syn::Lit::Str(lit_str) => Some(Ok(lit_str.value())),
+            _ => Some(Err("Invalid attribute value".to_string())),
+        },
+        _ => Some(Err("Invalid attribute value".to_string())),
+    }
 }
