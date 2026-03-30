@@ -1,5 +1,12 @@
 use builder::Builder;
 
+struct CommandBuilder {
+    executable: Option<String>,
+    args: Option<Vec<String>>,
+    env: Option<Vec<String>>,
+    current_dir: Option<String>,
+}
+
 #[derive(Builder, PartialEq, Debug)]
 pub struct BuilderStruct {
     pub x: u64,

@@ -20,7 +20,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
         .into();
     };
 
-    let getter_vars = struct_variants.fields.iter().map(|variant| {
+    let setter_vars = struct_variants.fields.iter().map(|variant| {
         let variant_name = &variant.clone().ident.unwrap();
         let variant_type = &variant.ty;
 
@@ -66,7 +66,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
     quote! {
         impl #name {
-            #(#getter_vars)*
+            #(#setter_vars)*
         }
     }
     .into()
