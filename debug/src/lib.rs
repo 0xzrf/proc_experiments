@@ -14,49 +14,111 @@ pub fn derive(input: TokenStream) -> TokenStream {
             .into();
     };
 
-    let field_formatting_tokens = struct_data.fields.iter().map(|field| {
+    let fields = match &struct_data.fields {
+        syn::Fields::Named(fields) => &fields.named,
+        syn::Fields::Unnamed(_) | syn::Fields::Unit => {
+            return syn::Error::new_spanned(name, "CustomDebug expects a struct with named fields")
+                .to_compile_error()
+                .into();
+        }
+    };
+
+    let mut field_stmts = Vec::new();
+    for (i, field) in fields.iter().enumerate() {
         let Some(field_name) = &field.ident else {
-            panic!("expected each field to be a named field");
+            return syn::Error::new_spanned(name, "CustomDebug expects named fields")
+                .to_compile_error()
+                .into();
         };
 
         let field_name_str = field_name.to_string();
-        if let Some(attr_val_result) = extract_attribute_value(&field.attrs) {
-            let attribute_debug_style = match attr_val_result {
-                Ok(attr_val) => attr_val,
-                Err(e) => panic!("{e}"),
-            };
 
-            todo!()
+        let maybe_format = match extract_debug_format(&field.attrs) {
+            Ok(v) => v,
+            Err(e) => return e.to_compile_error().into(),
+        };
+
+        let comma = if i == 0 {
+            quote! {}
+        } else {
+            quote! { f.write_str(", ")?; }
+        };
+
+        let value_stmt = if let Some(fmt) = maybe_format {
+            quote! {
+                f.write_str(#field_name_str)?;
+                f.write_str(": ")?;
+                f.write_fmt(std::format_args!(#fmt, self.#field_name))?;
+            }
         } else {
             quote! {
-                .field(#field_name_str, &self.#field_name)
+                f.write_str(#field_name_str)?;
+                f.write_str(": ")?;
+                f.write_fmt(std::format_args!("{:?}", &self.#field_name))?;
             }
-        }
-    });
+        };
+
+        field_stmts.push(quote! {
+            #comma
+            #value_stmt
+        });
+    }
 
     quote! {
         impl std::fmt::Debug for #name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                f.debug_struct(#name_str)
-                #(#field_formatting_tokens)*
-                .finish()
+                f.write_str(#name_str)?;
+                f.write_str(" { ")?;
+                #(#field_stmts)*
+                f.write_str(" }")
             }
         }
     }
     .into()
 }
 
-fn extract_attribute_value(attrs: &[Attribute]) -> Option<Result<String, String>> {
-    let attr = attrs.iter().find(|a| a.path().is_ident("debug"))?;
-    let meta: syn::MetaNameValue = match attr.parse_args() {
-        Ok(m) => m,
-        Err(_) => return Some(Err("couldn't parse to name value".to_string())),
-    };
-    match meta.value {
-        syn::Expr::Lit(expr_lit) => match expr_lit.lit {
-            syn::Lit::Str(lit_str) => Some(Ok(lit_str.value())),
-            _ => Some(Err("Invalid attribute value".to_string())),
-        },
-        _ => Some(Err("Invalid attribute value".to_string())),
+fn extract_debug_format(attrs: &[Attribute]) -> Result<Option<syn::LitStr>, syn::Error> {
+    let mut found: Option<syn::LitStr> = None;
+
+    for attr in attrs {
+        let syn::Meta::NameValue(nv) = &attr.meta else {
+            if attr.path().is_ident("debug") {
+                return Err(syn::Error::new_spanned(attr, "expected #[debug = \"...\"]"));
+            }
+            continue;
+        };
+
+        if !nv.path.is_ident("debug") {
+            continue;
+        }
+
+        if found.is_some() {
+            return Err(syn::Error::new_spanned(
+                attr,
+                "duplicate #[debug = \"...\"] attribute",
+            ));
+        }
+
+        let fmt = match &nv.value {
+            syn::Expr::Lit(expr_lit) => match &expr_lit.lit {
+                syn::Lit::Str(lit_str) => lit_str.clone(),
+                other => {
+                    return Err(syn::Error::new_spanned(
+                        other,
+                        "expected #[debug = \"...\"]",
+                    ));
+                }
+            },
+            other => {
+                return Err(syn::Error::new_spanned(
+                    other,
+                    "expected #[debug = \"...\"]",
+                ));
+            }
+        };
+
+        found = Some(fmt);
     }
+
+    Ok(found)
 }
