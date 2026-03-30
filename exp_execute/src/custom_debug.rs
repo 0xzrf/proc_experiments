@@ -1,4 +1,4 @@
-use custom_debug::CustomDebug;
+use debug::CustomDebug;
 
 #[derive(CustomDebug)]
 pub struct Fielder {

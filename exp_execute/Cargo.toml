@@ -5,4 +5,4 @@ edition = "2024"
 
 [dependencies]
 builder = { path = "../builder" }
-custom_debug = { path = "../custom_debug" }
+debug = { path = "../debug" }
