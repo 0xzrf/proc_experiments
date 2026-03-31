@@ -1,5 +1,5 @@
 use proc_macro::TokenStream;
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 use syn::{
@@ -132,33 +132,81 @@ fn extract_debug_format(attrs: &[Attribute]) -> Result<Option<syn::LitStr>, syn:
 }
 
 fn add_trait_bounds(mut generics: Generics, fields: &Punctuated<Field, Comma>) -> Generics {
+    use std::collections::HashSet;
+    use syn::visit::Visit;
+
+    let type_params: HashSet<Ident> = generics.type_params().map(|tp| tp.ident.clone()).collect();
+
+    #[derive(Default)]
+    struct Usage {
+        direct: HashSet<Ident>,
+        associated: HashSet<String>,
+    }
+
+    struct Finder<'a> {
+        type_params: &'a HashSet<Ident>,
+        usage: Usage,
+    }
+
+    impl<'a, 'ast> Visit<'ast> for Finder<'a> {
+        fn visit_type_path(&mut self, node: &'ast syn::TypePath) {
+            if node.qself.is_none() && node.path.leading_colon.is_none() {
+                let segs = &node.path.segments;
+                if let Some(first) = segs.first() {
+                    if self.type_params.contains(&first.ident) {
+                        if segs.len() == 1 && matches!(first.arguments, syn::PathArguments::None) {
+                            self.usage.direct.insert(first.ident.clone());
+                        } else if segs.len() > 1 {
+                            self.usage
+                                .associated
+                                .insert(node.to_token_stream().to_string());
+                        }
+                    }
+                }
+            }
+
+            syn::visit::visit_type_path(self, node);
+        }
+    }
+
+    let mut finder = Finder {
+        type_params: &type_params,
+        usage: Usage::default(),
+    };
+
+    // Treat `PhantomData<T>` as a special case: it never requires `T: Debug`.
+    for field in fields {
+        let mut is_phantom = false;
+        for param in &type_params {
+            if is_phantomdata_of_param(&field.ty, param) {
+                is_phantom = true;
+                break;
+            }
+        }
+        if !is_phantom {
+            finder.visit_type(&field.ty);
+        }
+    }
+
     for param in &mut generics.params {
         if let GenericParam::Type(ref mut type_param) = *param {
-            if !type_inner_phantom(&type_param.ident, fields) {
+            if finder.usage.direct.contains(&type_param.ident) {
                 type_param.bounds.push(parse_quote!(std::fmt::Debug));
             }
         }
     }
-    generics
-}
 
-/// checks if the generic param is present inside the PhantomData<T> in the fields
-///
-/// ### Arguments
-///
-/// `param`: Generic type param to check
-///
-/// `fields`: Fields of the struct implementing this macro
-fn type_inner_phantom(param: &Ident, fields: &Punctuated<Field, Comma>) -> bool {
-    let result = false;
-    for field in fields {
-        let field_type = &field.ty;
-        if is_phantomdata_of_param(field_type, param) {
-            return true;
+    if !finder.usage.associated.is_empty() {
+        let where_clause = generics.make_where_clause();
+        for assoc in finder.usage.associated {
+            let ty: syn::Type = syn::parse_str(&assoc).expect("failed to parse type path");
+            where_clause
+                .predicates
+                .push(parse_quote!(#ty: std::fmt::Debug));
         }
     }
 
-    result
+    generics
 }
 
 fn is_phantomdata_of_param(ty: &syn::Type, param: &syn::Ident) -> bool {
