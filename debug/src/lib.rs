@@ -1,6 +1,10 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, parse_quote, Attribute, DeriveInput, GenericParam, Generics};
+use syn::punctuated::Punctuated;
+use syn::token::Comma;
+use syn::{
+    parse_macro_input, parse_quote, Attribute, DeriveInput, Field, GenericParam, Generics, Ident,
+};
 
 #[proc_macro_derive(CustomDebug, attributes(debug))]
 pub fn derive(input: TokenStream) -> TokenStream {
@@ -24,7 +28,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
     };
 
     // only allow implementing this macro if the typed parameters implement std::fmt::Debug
-    let generics = add_trait_bounds(input.generics);
+    let generics = add_trait_bounds(input.generics, fields);
     let (impl_generic, type_generic, where_clause) = generics.split_for_impl();
 
     let mut field_stmts = Vec::new();
@@ -127,11 +131,62 @@ fn extract_debug_format(attrs: &[Attribute]) -> Result<Option<syn::LitStr>, syn:
     Ok(found)
 }
 
-fn add_trait_bounds(mut generics: Generics) -> Generics {
+fn add_trait_bounds(mut generics: Generics, fields: &Punctuated<Field, Comma>) -> Generics {
     for param in &mut generics.params {
         if let GenericParam::Type(ref mut type_param) = *param {
-            type_param.bounds.push(parse_quote!(std::fmt::Debug));
+            if !type_inner_phantom(&type_param.ident, fields) {
+                type_param.bounds.push(parse_quote!(std::fmt::Debug));
+            }
         }
     }
     generics
+}
+
+/// checks if the generic param is present inside the PhantomData<T> in the fields
+///
+/// `param`: Generic type param to check
+///
+/// `fields`: Fields of the struct implementing this macro
+fn type_inner_phantom(param: &Ident, fields: &Punctuated<Field, Comma>) -> bool {
+    let mut result = false;
+    for field in fields {
+        let field_type = &field.ty;
+        result = is_phantomdata_of_param(field_type, param);
+    }
+
+    result
+}
+
+fn is_phantomdata_of_param(ty: &syn::Type, param: &syn::Ident) -> bool {
+    use syn::{GenericArgument, PathArguments, Type};
+
+    let Type::Path(type_path) = ty else {
+        return false;
+    };
+
+    let Some(last) = type_path.path.segments.last() else {
+        return false;
+    };
+    if last.ident != "PhantomData" {
+        return false;
+    }
+
+    let PathArguments::AngleBracketed(ab) = &last.arguments else {
+        return false;
+    };
+
+    if ab.args.len() != 1 {
+        return false;
+    }
+
+    match ab.args.first().unwrap() {
+        GenericArgument::Type(Type::Path(inner)) => {
+            // Require exactly `T` (one segment) not `some::T`
+            inner.qself.is_none()
+                && inner.path.leading_colon.is_none()
+                && inner.path.segments[0].ident == *param
+                && matches!(inner.path.segments[0].arguments, PathArguments::None)
+        }
+        _ => false,
+    }
 }
