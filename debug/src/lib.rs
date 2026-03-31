@@ -148,10 +148,12 @@ fn add_trait_bounds(mut generics: Generics, fields: &Punctuated<Field, Comma>) -
 ///
 /// `fields`: Fields of the struct implementing this macro
 fn type_inner_phantom(param: &Ident, fields: &Punctuated<Field, Comma>) -> bool {
-    let mut result = false;
+    let result = false;
     for field in fields {
         let field_type = &field.ty;
-        result = is_phantomdata_of_param(field_type, param);
+        if is_phantomdata_of_param(field_type, param) {
+            return true;
+        }
     }
 
     result
