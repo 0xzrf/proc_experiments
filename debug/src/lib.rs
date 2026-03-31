@@ -144,6 +144,8 @@ fn add_trait_bounds(mut generics: Generics, fields: &Punctuated<Field, Comma>) -
 
 /// checks if the generic param is present inside the PhantomData<T> in the fields
 ///
+/// ### Arguments
+///
 /// `param`: Generic type param to check
 ///
 /// `fields`: Fields of the struct implementing this macro
