@@ -1,7 +1,5 @@
 error: SomethingFailed should sort before ThisFailed
-  --> tests/03-out-of-order.rs:16:1
+  --> tests/03-out-of-order.rs:20:5
    |
-16 | #[sorted]
-   | ^^^^^^^^^
-   |
-   = note: this error originates in the attribute macro `sorted` (in Nightly builds, run with -Z macro-backtrace for more info)
+20 |     SomethingFailed,
+   |     ^^^^^^^^^^^^^^^
