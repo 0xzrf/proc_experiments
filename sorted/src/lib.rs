@@ -2,7 +2,10 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::ToTokens;
 use std::any::Any;
-use syn::{parse_macro_input, Error, Item};
+use syn::punctuated::Punctuated;
+use syn::token::Comma;
+use syn::{parse_macro_input, Error, Item, Variant};
+
 #[proc_macro_attribute]
 pub fn sorted(args: TokenStream, input: TokenStream) -> TokenStream {
     let _ = args;
@@ -14,11 +17,35 @@ pub fn sorted(args: TokenStream, input: TokenStream) -> TokenStream {
     }
 }
 
-fn handle_sorted(input: Item, _args: TokenStream) -> Result<TokenStream, &'static str> {
+fn handle_sorted(input: Item, _args: TokenStream) -> Result<TokenStream, String> {
     println!("input type id: {:#?}", input.type_id());
-    if !matches!(input, Item::Enum(_)) {
-        return Err("expected enum or match expression");
+    match &input {
+        Item::Enum(input) => {
+            are_variants_lexicographically_ordered(&input.variants)?;
+        }
+        _ => return Err("expected enum or match expression".to_string()),
     }
 
     Ok(input.to_token_stream().into())
+}
+
+fn are_variants_lexicographically_ordered(
+    variants: &Punctuated<Variant, Comma>,
+) -> Result<(), String> {
+    if variants.is_empty() {
+        return Ok(());
+    }
+
+    let mut prev_variant = variants[0].ident.to_string();
+
+    for variant in variants.iter().skip(1) {
+        let current_variant = variant.ident.to_string();
+        if prev_variant > current_variant {
+            return Err(format!(
+                "{current_variant} should sort before {prev_variant}",
+            ));
+        }
+        prev_variant = current_variant;
+    }
+    Ok(())
 }

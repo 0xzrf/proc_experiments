@@ -1,5 +1,7 @@
-error: SomethingFailed should sort before ThatFailed
-  --> tests/03-out-of-order.rs:20:5
+error: SomethingFailed should sort before ThisFailed
+  --> tests/03-out-of-order.rs:16:1
    |
-20 |     SomethingFailed,
-   |     ^^^^^^^^^^^^^^^
+16 | #[sorted]
+   | ^^^^^^^^^
+   |
+   = note: this error originates in the attribute macro `sorted` (in Nightly builds, run with -Z macro-backtrace for more info)
