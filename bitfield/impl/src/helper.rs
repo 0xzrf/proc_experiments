@@ -42,6 +42,20 @@ pub fn bits_from_field_type(ty: &Type) -> BitFieldResult<usize> {
     Ok(bit_size)
 }
 
+pub fn get_return_type_for_bit_size(bit_size: u8) -> Type {
+    if (1..=8).contains(&bit_size) {
+        syn::parse_str::<Type>("u8").unwrap()
+    } else if (9..=16).contains(&bit_size) {
+        syn::parse_str::<Type>("u16").unwrap()
+    } else if (17..=32).contains(&bit_size) {
+        syn::parse_str::<Type>("u32").unwrap()
+    } else if (33..=64).contains(&bit_size) {
+        syn::parse_str::<Type>("u64").unwrap()
+    } else {
+        panic!("Invalid bit size: {}. Only 1..=64 supported.", bit_size);
+    }
+}
+
 pub fn get_struct_size_in_bits(fields: &Punctuated<Field, Comma>) -> BitFieldResult<usize> {
     let mut struct_size = 0usize;
     for field in fields {

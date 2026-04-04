@@ -8,8 +8,6 @@ use helper::*;
 
 #[proc_macro_attribute]
 pub fn bitfield(_args: TokenStream, input: TokenStream) -> TokenStream {
-    let _ = input;
-
     handle_bit_field(input)
 }
 
