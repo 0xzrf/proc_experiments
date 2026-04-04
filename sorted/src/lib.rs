@@ -114,16 +114,35 @@ fn handle_check(mut input: ItemFn) -> TokenStream {
 fn match_arm_pattern_sort_key(pat: &Pat) -> Option<(String, Span)> {
     match pat {
         Pat::Path(p) => {
-            let seg = p.path.segments.last()?;
-            Some((seg.ident.to_string(), seg.ident.span()))
+            let seg = p
+                .path
+                .segments
+                .iter()
+                .map(|s| s.ident.to_string())
+                .collect::<Vec<_>>()
+                .join("::");
+            Some((seg, p.path.segments.span()))
         }
         Pat::TupleStruct(p) => {
-            let seg = p.path.segments.last()?;
-            Some((seg.ident.to_string(), seg.ident.span()))
+            let seg = p
+                .path
+                .segments
+                .iter()
+                .map(|s| s.ident.to_string())
+                .collect::<Vec<String>>()
+                .join("::");
+
+            Some((seg, p.path.segments.span()))
         }
         Pat::Struct(p) => {
-            let seg = p.path.segments.last()?;
-            Some((seg.ident.to_string(), seg.ident.span()))
+            let seg = p
+                .path
+                .segments
+                .iter()
+                .map(|s| s.ident.to_string())
+                .collect::<Vec<_>>()
+                .join("::");
+            Some((seg, p.path.segments.span()))
         }
         Pat::Ident(p) if p.subpat.is_none() => Some((p.ident.to_string(), p.ident.span())),
         _ => None,
