@@ -15,7 +15,7 @@
 //   - The DebugStruct helper for formatting structs correctly:
 //     https://doc.rust-lang.org/std/fmt/struct.DebugStruct.html
 
-use derive_debug::CustomDebug;
+use debug::CustomDebug;
 
 #[derive(CustomDebug)]
 pub struct Field {

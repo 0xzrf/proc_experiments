@@ -14,7 +14,7 @@
 //   - An example of a derive macro implemented using Syn:
 //     https://github.com/dtolnay/syn/tree/master/examples/heapsize
 
-use derive_debug::CustomDebug;
+use debug::CustomDebug;
 
 #[derive(CustomDebug)]
 pub struct Field {

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["builder", "derive_debug", "dec_macro", "exp_execute"]
+members = ["builder", "debug", "dec_macro", "exp_execute", "sorted"]
 
 [workspace.dependencies]
 quote = "1"

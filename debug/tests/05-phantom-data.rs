@@ -48,7 +48,7 @@
 // that correctly calls String's Debug impl despite having no way to know that
 // the word "S" in its input refers to the type String.
 
-use derive_debug::CustomDebug;
+use debug::CustomDebug;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 

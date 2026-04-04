@@ -75,7 +75,7 @@
 // signatures, as well as trait bounds on impls of public traits for public
 // types.
 
-use derive_debug::CustomDebug;
+use debug::CustomDebug;
 use std::fmt::Debug;
 
 #[derive(CustomDebug)]
