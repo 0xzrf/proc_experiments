@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["builder", "debug", "dec_macro", "exp_execute", "sorted", "bitfields"]
+members = ["bitfield", "builder", "debug", "dec_macro", "exp_execute", "sorted"]
 
 [workspace.dependencies]
 quote = "1"

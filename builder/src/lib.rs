@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
 use syn::{
-    Data, DeriveInput, GenericArgument, Ident, LitStr, PathArguments, Type, parse_macro_input,
+    parse_macro_input, Data, DeriveInput, GenericArgument, Ident, LitStr, PathArguments, Type,
 };
 
 #[proc_macro_derive(Builder, attributes(builder))]
