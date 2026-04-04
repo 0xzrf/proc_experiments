@@ -155,10 +155,7 @@ fn check_match_arm_lexicographically_ordered(arms: &[Arm]) -> Result<(), (String
     }
 
     let Some((mut prev_name, _)) = match_arm_pattern_sort_key(&arms[0].pat) else {
-        return Err((
-            "unsupported pattern in #[sorted] match".to_string(),
-            arms[0].pat.span(),
-        ));
+        return Err(("unsupported by #[sorted]".to_string(), arms[0].pat.span()));
     };
 
     for arm in arms.iter().skip(1) {
