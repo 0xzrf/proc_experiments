@@ -25,12 +25,9 @@ pub fn derive(input: TokenStream) -> TokenStream {
         let variant_type = &variant.ty;
 
         let mut is_val = (false, "".to_string());
-        variant
-            .attrs
-            .iter()
-            .find(|attr| attr.path().is_ident("builder"))
-            .and_then(|attr| {
-                attr.parse_nested_meta(|meta| {
+        for attr in &variant.attrs {
+            if attr.path().is_ident("builder") {
+                let _ = attr.parse_nested_meta(|meta| {
                     if !meta.path.is_ident("each") {
                         panic!("expect nested arg to be \"each\"");
                     }
@@ -38,8 +35,9 @@ pub fn derive(input: TokenStream) -> TokenStream {
                     is_val = (true, meta_val.value());
                     Ok(())
                 });
-                Some(())
-            });
+                break;
+            }
+        }
 
         if is_val.0 {
             let fn_name = Ident::new(&is_val.1, Span::call_site());
