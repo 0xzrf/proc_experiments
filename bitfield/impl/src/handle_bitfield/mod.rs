@@ -1,9 +1,8 @@
 use crate::*;
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::punctuated::Punctuated;
-use syn::token::Comma;
-use syn::{parse_macro_input, Field, Fields, Item};
+use syn::{parse_macro_input, Fields, Item};
+mod getter_and_setter;
 
 pub fn handle_bit_field(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as Item);
@@ -35,15 +34,4 @@ pub fn handle_bit_field(input: TokenStream) -> TokenStream {
         }
     }
     .into()
-}
-
-fn get_struct_size_in_bits(fields: &Punctuated<Field, Comma>) -> BitFieldResult<usize> {
-    let mut struct_size = 0usize;
-    for field in fields {
-        let field_type = &field.ty;
-
-        struct_size += bits_from_field_type(field_type)?;
-    }
-
-    Ok(struct_size)
 }

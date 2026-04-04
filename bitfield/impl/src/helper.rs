@@ -1,5 +1,8 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
+use syn::punctuated::Punctuated;
+use syn::token::Comma;
+use syn::Field;
 use syn::{spanned::Spanned, Error, Type};
 
 pub type BitFieldResult<T> = Result<T, (Span, &'static str)>;
@@ -37,4 +40,15 @@ pub fn bits_from_field_type(ty: &Type) -> BitFieldResult<usize> {
     }
 
     Ok(bit_size)
+}
+
+pub fn get_struct_size_in_bits(fields: &Punctuated<Field, Comma>) -> BitFieldResult<usize> {
+    let mut struct_size = 0usize;
+    for field in fields {
+        let field_type = &field.ty;
+
+        struct_size += bits_from_field_type(field_type)?;
+    }
+
+    Ok(struct_size)
 }
