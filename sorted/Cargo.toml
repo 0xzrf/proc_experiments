@@ -1,9 +1,9 @@
 [package]
 name = "sorted"
 version = "0.0.0"
-autotests = false
 edition = "2021"
 publish = false
+autotests = false
 
 [lib]
 proc-macro = true
@@ -12,11 +12,10 @@ proc-macro = true
 name = "tests"
 path = "tests/progress.rs"
 
-[dev-dependencies]
-trybuild = { version = "1.0.108", features = ["diff"] }
-
 [dependencies]
 proc-macro2 = "1.0.106"
 quote = "1.0.45"
-syn = { version = "2.0.117", features = ["full"] }
-# TODO
+syn = { version = "2.0.117", features = ["full", "visit-mut"] }
+
+[dev-dependencies]
+trybuild = { version = "1.0.108", features = ["diff"] }
